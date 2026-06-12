@@ -1,4 +1,4 @@
-# Rally-Studios
+# Ralli-Studios
 
 Ralli Studios is a Canadian owned printing business for clothing, b to b printing for pickle ball, Non profits, and organizations.
 
