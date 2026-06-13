@@ -1,48 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Ralli Studios - Your Account </title>
+    <meta charset="UTF-8">
+    <title>Ralli Studios - Your Account</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <h1>Your Custom Order History</h1>
+    
+    <button onclick="logout()" style="padding: 5px 10px; cursor: pointer; margin-bottom: 20px;">Log Out</button>
+
     <div id="orders-container">Loading orders...</div>
 
-    <script>
-        async function fetchMyOrders() {
-            // Replace this URL with your live backend URL later
-            const backendUrl = "http://localhost:3000/api/orders";
-            const userToken = localStorage.getItem("userToken"); // Get saved login token
+    <div id="g_id_onload"
+         data-client_id="1025926587968-flg80c3repb78hrb18vs4oqtotgaa417.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleGoogleSignIn"
+         data-auto_prompt="false">
+    </div>
 
-            try {
-                const response = await fetch(backendUrl, {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${userToken}`
-                    }
-                });
-                const orders = await response.json();
-                
-                const container = document.getElementById("orders-container");
-                container.innerHTML = ""; // Clear loading message
+    <div class="g_id_signin"
+         data-type="standard"
+         data-shape="pill"
+         data-theme="outline"
+         data-text="signin_with"
+         data-size="large"
+         data-logo_alignment="left">
+    </div>
 
-                orders.forEach(order => {
-                    container.innerHTML += `
-                        <div style="border: 1px solid #000; margin: 10px; padding: 10px;">
-                            <p><strong>Order ID:</strong> ${order._id}</p>
-                            <p><strong>Items:</strong> ${order.items.join(", ")}</p>
-                            <p><strong>Total:</strong> $${order.totalPrice}</p>
-                        </div>`;
-                });
-            } catch (err) {
-                document.getElementById("orders-container").innerHTML = "Failed to load orders.";
-            }
+<script>
+// SECURITY CHECK: If no account token is saved in localStorage, kick them to signin.html automatically
+const userToken = localStorage.getItem("userToken");
+if (!userToken) {
+    window.location.href = "signin.html";
+}
+
+// Automatically runs when a user completes the Google Sign-In pop-up
+async function handleGoogleSignIn(googleResponse) {
+    try {
+        const backendUrl = "https://reimagined-space-goggles-x5qqvgxqwp6qh67pq-3000.app.github.dev/api/auth/google";
+        
+        const response = await fetch(backendUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: googleResponse.credential })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            localStorage.setItem("userToken", data.token);
+            window.location.reload(); // Reload the page to load their orders immediately
+        } else {
+            alert("Google Sign-In failed: " + data.error);
         }
+    } catch (err) {
+        console.error("Error signing in with Google:", err);
+    }
+}
 
-        // Run this when the page loads
-        async function fetchMyOrders() {
-    // We point directly to your live Codespace port 3000 URL
+// Pulls orders dynamically from your custom server
+async function fetchMyOrders() {
     const backendUrl = "https://reimagined-space-goggles-x5qqvgxqwp6qh67pq-3000.app.github.dev/api/orders";
-    const userToken = localStorage.getItem("userToken");
 
     try {
         const response = await fetch(backendUrl, {
@@ -51,14 +70,24 @@
                 "Authorization": `Bearer ${userToken}`
             }
         });
+
+        if (response.status === 401 || response.status === 403) {
+            logout(); // Kick them out if their backend session token is dead or fake
+            return;
+        }
+
         const orders = await response.json();
-        
         const container = document.getElementById("orders-container");
-        container.innerHTML = ""; // Clear loading message
+        container.innerHTML = ""; // Wipe the "Loading..." message
+
+        if (orders.length === 0) {
+            container.innerHTML = "<p>You have no order history yet.</p>";
+            return;
+        }
 
         orders.forEach(order => {
             container.innerHTML += `
-                <div style="border: 1px solid #000; margin: 10px; padding: 10px;">
+                <div style="border: 1px solid #000; margin: 10px; padding: 10px; max-width: 400px;">
                     <p><strong>Order ID:</strong> ${order._id}</p>
                     <p><strong>Items:</strong> ${order.items.join(", ")}</p>
                     <p><strong>Total:</strong> $${order.totalPrice}</p>
@@ -68,6 +97,17 @@
         document.getElementById("orders-container").innerHTML = "Failed to load orders.";
     }
 }
-    </script>
+
+// Clear browser storage data and send back to sign-in page
+function logout() {
+    localStorage.removeItem("userToken");
+    window.location.href = "signin.html";
+}
+
+// Only fetch orders if the authorization check passed
+if (userToken) {
+    fetchMyOrders();
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,29 @@
+{
+  "name": "ralli-studios",
+  "version": "1.0.0",
+  "description": "Ralli Studios is a Canadian owned printing business for clothing, b to b printing for pickle ball, Non profits, and organizations.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Codeblub/Ralli-Studios.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Codeblub/Ralli-Studios/issues"
+  },
+  "homepage": "https://github.com/Codeblub/Ralli-Studios#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.7.0",
+    "jsonwebtoken": "^9.0.3"
+  }
+}

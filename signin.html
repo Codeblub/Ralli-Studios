@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ralli Studios - Sign In</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #fafafa; margin: 0; }
+        .auth-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #000; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #333; }
+        .divider { margin: 20px 0; color: #888; display: flex; align-items: center; justify-content: center; }
+        .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid #eee; margin: 0 10px; }
+        .toggle-link { color: #0066cc; cursor: pointer; text-decoration: underline; margin-top: 15px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <h2 id="form-title">Sign In to Ralli Studios</h2>
+    
+    <form id="auth-form">
+        <input type="email" id="email" placeholder="Email Address" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit" id="submit-btn">Sign In</button>
+    </form>
+
+    <div class="toggle-link" id="toggle-auth">Don't have an account? Sign Up</div>
+
+    <div class="divider">or</div>
+
+    <div id="g_id_onload"
+         data-client_id="1025926587968-flgqshg2b63jduqg95a7u9075be8n1m9.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleGoogleSignIn"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline" data-size="large" data-text="signin_with" data-logo_alignment="left" style="display: flex; justify-content: center;"></div>
+</div>
+
+<script>
+    const backendUrl = "https://reimagined-space-goggles-x5qqvgxqwp6qh67pq-3000.app.github.dev";
+    let isLoginMode = true;
+
+    // Toggle between Login and Registration UI
+    document.getElementById("toggle-auth").addEventListener("click", () => {
+        isLoginMode = !isLoginMode;
+        document.getElementById("form-title").innerText = isLoginMode ? "Sign In to Ralli Studios" : "Create Your Account";
+        document.getElementById("submit-btn").innerText = isLoginMode ? "Sign In" : "Sign Up";
+        document.getElementById("toggle-auth").innerText = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Sign In";
+    });
+
+    // Handle Custom Email/Password Submission
+    document.getElementById("auth-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const endpoint = isLoginMode ? "/api/auth/login" : "/api/auth/register";
+
+        try {
+            const response = await fetch(`${backendUrl}${endpoint}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                if (isLoginMode) {
+                    // Store the login token securely inside the browser
+                    localStorage.setItem("userToken", data.token);
+                    window.location.href = "account.html";
+                } else {
+                    alert("Account created successfully! You can now log in.");
+                    document.getElementById("toggle-auth").click();
+                }
+            } else {
+                alert(data.error || "Authentication failed");
+            }
+        } catch (err) {
+            alert("Could not connect to backend server.");
+        }
+    });
+
+    // Handle Google Sign-In Response
+    async function handleGoogleSignIn(googleResponse) {
+        try {
+            const response = await fetch(`${backendUrl}/api/auth/google`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: googleResponse.credential })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                localStorage.setItem("userToken", data.token);
+                window.location.href = "account.html";
+            } else {
+                alert("Google Sign-In failed: " + data.error);
+            }
+        } catch (err) {
+            console.error("Error signing in with Google:", err);
+        }
+    }
+</script>
+
+</body>
+</html>
