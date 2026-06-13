@@ -2,12 +2,27 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const { OAuth2Client } = require('google-auth-library');
 
 const app = express();
 const PORT = 3000;
 
-// Configured with your live Google Client ID from your cloud console
+// Connect to MongoDB Atlas securely using Render's background variable
+const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/rallistudios";
+mongoose.connect(mongoURI)
+    .then(() => console.log("💾 Securely connected to MongoDB Atlas!"))
+    .catch(err => console.error("Database connection error:", err));
+
+// Define your real User database structure
+const UserSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    password: { type: String }, // Optional because Google users won't have one
+    name: { type: String },
+    googleId: { type: String }
+});
+const User = mongoose.model('User', UserSchema);
+
 const googleClient = new OAuth2Client("1025926587968-flg80c3repb78hrb18vs4oqtotgaa417.apps.googleusercontent.com");
 const JWT_SECRET = "ralli_studios_super_secret_key_123"; 
 
@@ -15,45 +30,50 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(__dirname));
 
-// Temporary mock user and order databases
-const users = [];
 const dummyOrders = [
     { _id: "RALLI-1001", items: ["Custom Sticker Pack Set"], totalPrice: 15 },
     { _id: "RALLI-1002", items: ["Studio Hoodie", "Vinyl Decal"], totalPrice: 65 }
 ];
 
-// REGISTER ENDPOINT
+// REGISTER ENDPOINT (Saves to MongoDB)
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
-        if (users.find(u => u.email === email)) {
+        
+        // Look up user inside MongoDB Atlas
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
             return res.status(400).json({ error: "User already exists" });
         }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = { id: Date.now().toString(), email, password: hashedPassword };
-        users.push(newUser);
+        const newUser = new User({ email, password: hashedPassword });
+        await newUser.save(); // Save record straight to the cloud database!
+
         res.status(201).json({ success: true, message: "Account created!" });
     } catch (err) {
         res.status(500).json({ error: "Registration failed" });
     }
 });
 
-// LOGIN ENDPOINT
+// LOGIN ENDPOINT (Reads from MongoDB)
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = users.find(u => u.email === email);
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        const user = await User.findOne({ email });
+        
+        if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
             return res.status(400).json({ error: "Invalid email or password" });
         }
-        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
+
+        const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
         res.json({ success: true, token });
     } catch (err) {
         res.status(500).json({ error: "Login failed" });
     }
 });
 
-// GOOGLE AUTH ENDPOINT
+// GOOGLE AUTH ENDPOINT (Saves or Logs In Google Users on MongoDB)
 app.post('/api/auth/google', async (req, res) => {
     try {
         const { credential } = req.body;
@@ -63,20 +83,21 @@ app.post('/api/auth/google', async (req, res) => {
         });
         const payload = ticket.getPayload();
         
-        let user = users.find(u => u.email === payload.email);
+        let user = await User.findOne({ email: payload.email });
         if (!user) {
-            user = { id: payload.sub, email: payload.email, name: payload.name };
-            users.push(user);
+            // Register them automatically into your database if they are new
+            user = new User({ email: payload.email, name: payload.name, googleId: payload.sub });
+            await user.save();
         }
 
-        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
         res.json({ success: true, token });
     } catch (err) {
         res.status(400).json({ error: "Google verification failed" });
     }
 });
 
-// FETCH ORDERS ENDPOINT (Protected by checking for the token)
+// FETCH ORDERS ENDPOINT
 app.get('/api/orders', (req, res) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -85,7 +106,7 @@ app.get('/api/orders', (req, res) => {
 
     try {
         jwt.verify(token, JWT_SECRET);
-        res.json(dummyOrders); // Return orders if token is valid!
+        res.json(dummyOrders); 
     } catch (err) {
         res.status(403).json({ error: "Invalid token" });
     }
@@ -93,11 +114,4 @@ app.get('/api/orders', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);
-    const mongoose = require('mongoose');
-
-// Connect to the secure MongoDB string we just hid in Render
-const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/rallistudios";
-mongoose.connect(mongoURI)
-    .then(() => console.log("💾 Securely connected to MongoDB Atlas!"))
-    .catch(err => console.error("Database connection error:", err));
 });
