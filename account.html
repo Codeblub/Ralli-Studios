@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Ralli Studios - Your Account </title>
+</head>
+<body>
+    <h1>Your Custom Order History</h1>
+    <div id="orders-container">Loading orders...</div>
+
+    <script>
+        async function fetchMyOrders() {
+            // Replace this URL with your live backend URL later
+            const backendUrl = "http://localhost:3000/api/orders";
+            const userToken = localStorage.getItem("userToken"); // Get saved login token
+
+            try {
+                const response = await fetch(backendUrl, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${userToken}`
+                    }
+                });
+                const orders = await response.json();
+                
+                const container = document.getElementById("orders-container");
+                container.innerHTML = ""; // Clear loading message
+
+                orders.forEach(order => {
+                    container.innerHTML += `
+                        <div style="border: 1px solid #000; margin: 10px; padding: 10px;">
+                            <p><strong>Order ID:</strong> ${order._id}</p>
+                            <p><strong>Items:</strong> ${order.items.join(", ")}</p>
+                            <p><strong>Total:</strong> $${order.totalPrice}</p>
+                        </div>`;
+                });
+            } catch (err) {
+                document.getElementById("orders-container").innerHTML = "Failed to load orders.";
+            }
+        }
+
+        // Run this when the page loads
+        async function fetchMyOrders() {
+    // We point directly to your live Codespace port 3000 URL
+    const backendUrl = "https://reimagined-space-goggles-x5qqvgxqwp6qh67pq-3000.app.github.dev/api/orders";
+    const userToken = localStorage.getItem("userToken");
+
+    try {
+        const response = await fetch(backendUrl, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${userToken}`
+            }
+        });
+        const orders = await response.json();
+        
+        const container = document.getElementById("orders-container");
+        container.innerHTML = ""; // Clear loading message
+
+        orders.forEach(order => {
+            container.innerHTML += `
+                <div style="border: 1px solid #000; margin: 10px; padding: 10px;">
+                    <p><strong>Order ID:</strong> ${order._id}</p>
+                    <p><strong>Items:</strong> ${order.items.join(", ")}</p>
+                    <p><strong>Total:</strong> $${order.totalPrice}</p>
+                </div>`;
+        });
+    } catch (err) {
+        document.getElementById("orders-container").innerHTML = "Failed to load orders.";
+    }
+}
+    </script>
+</body>
+</html>
