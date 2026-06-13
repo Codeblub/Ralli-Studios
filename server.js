@@ -93,4 +93,11 @@ app.get('/api/orders', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);
+    const mongoose = require('mongoose');
+
+// Connect to the secure MongoDB string we just hid in Render
+const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/rallistudios";
+mongoose.connect(mongoURI)
+    .then(() => console.log("💾 Securely connected to MongoDB Atlas!"))
+    .catch(err => console.error("Database connection error:", err));
 });

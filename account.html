@@ -39,7 +39,7 @@ if (!userToken) {
 // Automatically runs when a user completes the Google Sign-In pop-up
 async function handleGoogleSignIn(googleResponse) {
     try {
-        const backendUrl = "https://reimagined-space-goggles-x5qqvgxqwp6qh67pq-3000.app.github.dev/api/auth/google";
+      const backendUrl = "https://ralli-studios.onrender.com/api/orders";
         
         const response = await fetch(backendUrl, {
             method: "POST",
