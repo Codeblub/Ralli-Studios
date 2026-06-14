@@ -155,6 +155,39 @@ app.get('/api/admin/all-orders', async (req, res) => {
     }
 });
 
+// MASTER ADMIN ENDPOINT: CANCEL/DELETE AN ORDER
+app.delete('/api/admin/cancel-order/:id', async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: "Access denied" });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Strict administration check
+        if (decoded.role !== 'admin') {
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+
+        const orderId = req.params.id;
+        
+        // Find the index of the order inside our global array
+        const orderIndex = dummyOrders.findIndex(o => o._id === orderId);
+        
+        if (orderIndex === -1) {
+            return res.status(404).json({ error: "Order reference number not found." });
+        }
+
+        // Remove the order from the system
+        dummyOrders.splice(orderIndex, 1);
+        
+        res.json({ success: true, message: `Order ${orderId} successfully canceled.` });
+    } catch (err) {
+        res.status(403).json({ error: "Invalid admin session" });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);
 });

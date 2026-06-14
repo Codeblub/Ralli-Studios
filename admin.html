@@ -10,6 +10,19 @@
         .hidden { display: none; }
         input, button { padding: 10px; margin: 5px 0; display: block; width: 100%; max-width: 300px; }
         button { background: #000; color: #fff; border: none; cursor: pointer; font-weight: bold; }
+
+        .cancel-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    margin-top: 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    max-width: 150px;
+}
+.cancel-btn:hover { background: #bd2130; }
     </style>
 </head>
 <body>
@@ -73,14 +86,15 @@
             const list = document.getElementById("master-orders-list");
             list.innerHTML = "";
 
-            orders.forEach(order => {
-                list.innerHTML += `
-                    <div class="order-card">
-                        <p><strong>SYSTEM ORDER REF:</strong> ${order._id}</p>
-                        <p><strong>ITEMS PURCHASED:</strong> ${order.items.join(", ")}</p>
-                        <p><strong>SETTLED TOTAL:</strong> $${order.totalPrice}</p>
-                    </div>`;
-            });
+orders.forEach(order => {
+    list.innerHTML += `
+        <div class="order-card" id="card-${order._id}">
+            <p><strong>SYSTEM ORDER REF:</strong> ${order._id}</p>
+            <p><strong>ITEMS PURCHASED:</strong> ${order.items.join(", ")}</p>
+            <p><strong>SETTLED TOTAL:</strong> $${order.totalPrice}</p>
+            <button class="cancel-btn" onclick="cancelSystemOrder('${order._id}')">Cancel Order</button>
+        </div>`;
+});
         } catch (err) {
             document.getElementById("master-orders-list").innerHTML = "Error retrieving centralized dataset.";
         }
@@ -90,6 +104,28 @@
     if (localStorage.getItem("adminToken")) {
         showDashboard();
     }
+
+    async function cancelSystemOrder(orderId) {
+    if (!confirm(`Are you sure you want to completely cancel order ${orderId}?`)) return;
+
+    const token = localStorage.getItem("adminToken");
+    try {
+        const response = await fetch(`${backendUrl}/api/admin/cancel-order/${orderId}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            alert(data.message);
+            loadAllSystemOrders(); // Instantly reloads the screen clean
+        } else {
+            alert(data.error);
+        }
+    } catch (err) {
+        alert("Error communicating with data servers.");
+    }
+}
 </script>
 </body>
 </html>
