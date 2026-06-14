@@ -12,23 +12,6 @@
 
     <div id="orders-container">Loading orders...</div>
 
-    <div id="g_id_onload"
-         data-client_id="1025926587968-flg80c3repb78hrb18vs4oqtotgaa417.apps.googleusercontent.com"
-         data-context="signin"
-         data-ux_mode="popup"
-         data-callback="handleGoogleSignIn"
-         data-auto_prompt="false">
-    </div>
-
-    <div class="g_id_signin"
-         data-type="standard"
-         data-shape="pill"
-         data-theme="outline"
-         data-text="signin_with"
-         data-size="large"
-         data-logo_alignment="left">
-    </div>
-
 <script>
 // SECURITY CHECK: If no account token is saved in localStorage, kick them to signin.html automatically
 const userToken = localStorage.getItem("userToken");
@@ -110,5 +93,7 @@ if (userToken) {
 }
 </script>
 </body>
+<br>
+<br>
 <a href="index.html"><button>Go back to homepage</button></a>
 </html>
