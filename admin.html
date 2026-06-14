@@ -4,25 +4,26 @@
     <meta charset="UTF-8">
     <title>Ralli Studios - Management Portal</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 40px; background: #f4f4f6; }
-        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 800px; margin: 0 auto; }
-        .order-card { border-left: 5px solid #000; background: #fafafa; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        body { font-family: Arial, sans-serif; padding: 40px; background: #f4f4f6; color: #333; }
+        .panel { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 900px; margin: 0 auto; }
+        
+        /* Navigation Tabs Layout */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .tab-btn { background: #eee; color: #555; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; transition: 0.2s; }
+        .tab-btn.active { background: #000; color: #fff; }
+        
+        .order-card, .user-card { border-left: 5px solid #000; background: #fafafa; padding: 15px; margin: 15px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .user-card { border-left-color: #007bff; }
+        
         .hidden { display: none; }
         input, button { padding: 10px; margin: 5px 0; display: block; width: 100%; max-width: 300px; }
-        button { background: #000; color: #fff; border: none; cursor: pointer; font-weight: bold; }
-
-        .cancel-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    margin-top: 10px;
-    cursor: pointer;
-    border-radius: 4px;
-    font-weight: bold;
-    max-width: 150px;
-}
-.cancel-btn:hover { background: #bd2130; }
+        button { background: #000; color: #fff; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        
+        .cancel-btn { background: #dc3545; color: white; width: auto; max-width: 150px; padding: 8px 12px; }
+        .cancel-btn:hover { background: #bd2130; }
+        
+        .nav-footer { margin-top: 30px; text-align: center; }
+        .nav-footer button { display: inline-block; background: #555; max-width: 200px; }
     </style>
 </head>
 <body>
@@ -36,9 +37,26 @@
     </div>
 
     <div id="dashboard-section" class="hidden">
-        <h2>Global Order Fulfilment Queue</h2>
-        <button onclick="loadAllSystemOrders()" style="max-width: 150px; margin-bottom: 20px;">Refresh Live Data</button>
-        <div id="master-orders-list">Loading systems updates...</div>
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-orders" onclick="switchTab('orders')">Fulfillment Queue</button>
+            <button class="tab-btn" id="tab-users" onclick="switchTab('users')">Registered Accounts</button>
+        </div>
+
+        <div id="content-orders">
+            <h2>Global Order Fulfillment Queue</h2>
+            <button onclick="loadAllSystemOrders()" style="max-width: 150px; margin-bottom: 20px;">Refresh Orders</button>
+            <div id="master-orders-list">Loading system updates...</div>
+        </div>
+
+        <div id="content-users" class="hidden">
+            <h2>Registered Customer Network</h2>
+            <button onclick="loadAllRegisteredUsers()" style="max-width: 150px; margin-bottom: 20px; background: #007bff;">Refresh Users</button>
+            <div id="master-users-list">Loading database entries...</div>
+        </div>
+    </div>
+    
+    <div class="nav-footer">
+        <a href="index.html" style="text-decoration: none;"><button>Go back to homepage</button></a>
     </div>
 </div>
 
@@ -71,7 +89,23 @@
     function showDashboard() {
         document.getElementById("login-section").classList.add("hidden");
         document.getElementById("dashboard-section").classList.remove("hidden");
-        loadAllSystemOrders();
+        switchTab('orders'); // Open up to the orders tab initially
+    }
+
+    function switchTab(target) {
+        if (target === 'orders') {
+            document.getElementById("content-orders").classList.remove("hidden");
+            document.getElementById("content-users").classList.add("hidden");
+            document.getElementById("tab-orders").classList.add("active");
+            document.getElementById("tab-users").classList.remove("active");
+            loadAllSystemOrders();
+        } else {
+            document.getElementById("content-orders").classList.add("hidden");
+            document.getElementById("content-users").classList.remove("hidden");
+            document.getElementById("tab-orders").classList.remove("active");
+            document.getElementById("tab-users").classList.add("active");
+            loadAllRegisteredUsers();
+        }
     }
 
     async function loadAllSystemOrders() {
@@ -84,49 +118,101 @@
             const orders = await response.json();
             
             const list = document.getElementById("master-orders-list");
-            list.innerHTML = "";
+            list.innerHTML = orders.length === 0 ? "<p>No pending orders found.</p>" : "";
 
-orders.forEach(order => {
-    list.innerHTML += `
-        <div class="order-card" id="card-${order._id}">
-            <p><strong>SYSTEM ORDER REF:</strong> ${order._id}</p>
-            <p><strong>ITEMS PURCHASED:</strong> ${order.items.join(", ")}</p>
-            <p><strong>SETTLED TOTAL:</strong> $${order.totalPrice}</p>
-            <button class="cancel-btn" onclick="cancelSystemOrder('${order._id}')">Cancel Order</button>
-        </div>`;
-});
+            orders.forEach(order => {
+                list.innerHTML += `
+                    <div class="order-card">
+                        <div>
+                            <p><strong>SYSTEM ORDER REF:</strong> ${order._id}</p>
+                            <p><strong>ITEMS PURCHASED:</strong> ${order.items.join(", ")}</p>
+                            <p><strong>SETTLED TOTAL:</strong> $${order.totalPrice}</p>
+                        </div>
+                        <button class="cancel-btn" onclick="cancelSystemOrder('${order._id}')">Cancel Order</button>
+                    </div>`;
+            });
         } catch (err) {
             document.getElementById("master-orders-list").innerHTML = "Error retrieving centralized dataset.";
         }
     }
 
-    // Auto load dashboard if token already exists
+    async function cancelSystemOrder(orderId) {
+        if (!confirm(`Are you sure you want to completely cancel order ${orderId}?`)) return;
+
+        const token = localStorage.getItem("adminToken");
+        try {
+            const response = await fetch(`${backendUrl}/api/admin/cancel-order/${orderId}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                alert(data.message);
+                loadAllSystemOrders();
+            } else {
+                alert(data.error);
+            }
+        } catch (err) {
+            alert("Error communicating with data servers.");
+        }
+    }
+
+    // NEW LOGIC: LOAD ALL USERS FROM MONGODB
+    async function loadAllRegisteredUsers() {
+        const token = localStorage.getItem("adminToken");
+        try {
+            const response = await fetch(`${backendUrl}/api/admin/all-users`, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const users = await response.json();
+            
+            const list = document.getElementById("master-users-list");
+            list.innerHTML = users.length === 0 ? "<p>No registered users found.</p>" : "";
+
+            users.forEach(user => {
+                list.innerHTML += `
+                    <div class="user-card">
+                        <div>
+                            <p><strong>USER ID:</strong> ${user._id}</p>
+                            <p><strong>EMAIL:</strong> ${user.email}</p>
+                            <p><strong>NAME:</strong> ${user.name || 'Not provided (Standard Form)'}</p>
+                        </div>
+                        <button class="cancel-btn" onclick="deleteUserAccount('${user._id}', '${user.email}')">Delete User</button>
+                    </div>`;
+            });
+        } catch (err) {
+            document.getElementById("master-users-list").innerHTML = "Error retrieving registered accounts database.";
+        }
+    }
+
+    // NEW LOGIC: DELETE A CUSTOMER PROFILE
+    async function deleteUserAccount(userId, email) {
+        if (!confirm(`CRITICAL WARNING:\nAre you sure you want to completely delete the account for ${email}?\nThis action cannot be undone.`)) return;
+
+        const token = localStorage.getItem("adminToken");
+        try {
+            const response = await fetch(`${backendUrl}/api/admin/delete-user/${userId}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                alert(data.message);
+                loadAllRegisteredUsers(); // Refresh display grid instantly
+            } else {
+                alert(data.error);
+            }
+        } catch (err) {
+            alert("Error communicating with authentication server.");
+        }
+    }
+
     if (localStorage.getItem("adminToken")) {
         showDashboard();
     }
-
-    async function cancelSystemOrder(orderId) {
-    if (!confirm(`Are you sure you want to completely cancel order ${orderId}?`)) return;
-
-    const token = localStorage.getItem("adminToken");
-    try {
-        const response = await fetch(`${backendUrl}/api/admin/cancel-order/${orderId}`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            alert(data.message);
-            loadAllSystemOrders(); // Instantly reloads the screen clean
-        } else {
-            alert(data.error);
-        }
-    } catch (err) {
-        alert("Error communicating with data servers.");
-    }
-}
 </script>
 </body>
-<a href="index.html"><button>Go back to homepage</button></a>
 </html>

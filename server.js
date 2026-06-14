@@ -188,6 +188,45 @@ app.delete('/api/admin/cancel-order/:id', async (req, res) => {
     }
 });
 
+// MASTER ADMIN ENDPOINT: VIEW ALL REGISTERED USERS
+app.get('/api/admin/all-users', async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: "Access denied" });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.role !== 'admin') return res.status(403).json({ error: "Unauthorized access" });
+
+        // Fetch all real profiles from MongoDB Atlas, hiding their encrypted passwords for safety
+        const users = await User.find({}, '-password');
+        res.json(users);
+    } catch (err) {
+        res.status(403).json({ error: "Invalid session" });
+    }
+});
+
+// MASTER ADMIN ENDPOINT: DELETE A USER ACCOUNT
+app.delete('/api/admin/delete-user/:id', async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: "Access denied" });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.role !== 'admin') return res.status(403).json({ error: "Unauthorized access" });
+
+        const userId = req.params.id;
+        await User.findByIdAndDelete(userId); // Removes the profile straight from your cloud database
+        
+        res.json({ success: true, message: "User account wiped successfully." });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to erase user record." });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);
 });
