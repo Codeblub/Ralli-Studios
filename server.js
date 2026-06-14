@@ -112,6 +112,49 @@ app.get('/api/orders', (req, res) => {
     }
 });
 
+// SECURE ADMIN LOGIN ENDPOINT
+app.post('/api/admin/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    // Pull the encrypted values directly from Render's environment variables
+    const secureUser = process.env.ADMIN_USER;
+    const securePass = process.env.ADMIN_PASS;
+
+    if (!secureUser || !securePass) {
+        return res.status(500).json({ error: "Admin credentials are not configured in environment." });
+    }
+
+    if (username === secureUser && password === securePass) {
+        // Issue a specialized Admin Token
+        const adminToken = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '2h' });
+        return res.json({ success: true, adminToken });
+    }
+
+    res.status(401).json({ error: "Invalid admin credentials" });
+});
+
+// MASTER ADMIN ENDPOINT: VIEW ALL ORDERS
+app.get('/api/admin/all-orders', async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: "Access denied" });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Block anyone who doesn't have the specific admin signature
+        if (decoded.role !== 'admin') {
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+
+        // Return the global list of orders (When you hook up MongoDB orders, replace with Order.find())
+        res.json(dummyOrders); 
+    } catch (err) {
+        res.status(403).json({ error: "Invalid session" });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);
 });

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ralli Studios - Management Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; background: #f4f4f6; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 800px; margin: 0 auto; }
+        .order-card { border-left: 5px solid #000; background: #fafafa; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .hidden { display: none; }
+        input, button { padding: 10px; margin: 5px 0; display: block; width: 100%; max-width: 300px; }
+        button { background: #000; color: #fff; border: none; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <div id="login-section">
+        <h2>System Management Authentication</h2>
+        <input type="text" id="admin-user" placeholder="Admin Username">
+        <input type="password" id="admin-pass" placeholder="Secret Access Token">
+        <button onclick="loginAdmin()">Authenticate</button>
+    </div>
+
+    <div id="dashboard-section" class="hidden">
+        <h2>Global Order Fulfilment Queue</h2>
+        <button onclick="loadAllSystemOrders()" style="max-width: 150px; margin-bottom: 20px;">Refresh Live Data</button>
+        <div id="master-orders-list">Loading systems updates...</div>
+    </div>
+</div>
+
+<script>
+    const backendUrl = "https://ralli-studios.onrender.com";
+
+    async function loginAdmin() {
+        const username = document.getElementById("admin-user").value;
+        const password = document.getElementById("admin-pass").value;
+
+        try {
+            const response = await fetch(`${backendUrl}/api/admin/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                localStorage.setItem("adminToken", data.adminToken);
+                showDashboard();
+            } else {
+                alert(data.error);
+            }
+        } catch (err) {
+            alert("Connection error to core API.");
+        }
+    }
+
+    function showDashboard() {
+        document.getElementById("login-section").classList.add("hidden");
+        document.getElementById("dashboard-section").classList.remove("hidden");
+        loadAllSystemOrders();
+    }
+
+    async function loadAllSystemOrders() {
+        const token = localStorage.getItem("adminToken");
+        try {
+            const response = await fetch(`${backendUrl}/api/admin/all-orders`, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const orders = await response.json();
+            
+            const list = document.getElementById("master-orders-list");
+            list.innerHTML = "";
+
+            orders.forEach(order => {
+                list.innerHTML += `
+                    <div class="order-card">
+                        <p><strong>SYSTEM ORDER REF:</strong> ${order._id}</p>
+                        <p><strong>ITEMS PURCHASED:</strong> ${order.items.join(", ")}</p>
+                        <p><strong>SETTLED TOTAL:</strong> $${order.totalPrice}</p>
+                    </div>`;
+            });
+        } catch (err) {
+            document.getElementById("master-orders-list").innerHTML = "Error retrieving centralized dataset.";
+        }
+    }
+
+    // Auto load dashboard if token already exists
+    if (localStorage.getItem("adminToken")) {
+        showDashboard();
+    }
+</script>
+</body>
+</html>
